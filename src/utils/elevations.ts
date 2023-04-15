@@ -18,7 +18,7 @@ export const getElevation = async (lat1: number, lng1: number, zoom = 15) => {
     dataType: 'dem5a_png',
   });
   // タイルから標高を取得
-  const h = elevationFromTile(tile.pX, tile.pY, context);
+  const h = elevationFromTile(tile.iX, tile.iY, context);
   return h;
 };
 
@@ -305,7 +305,7 @@ export const elevationFromTile = (
   const x = r * 2 ** 16 + g * 2 ** 8 + b;
   if (x < 2 ** 23) {
     h = x * resolution;
-  } else if (x == 2 ** 23) {
+  } else if (x === 2 ** 23) {
     h = undefined;
   } else if (x > 2 ** 23) {
     h = x - 2 ** 24 * resolution;
