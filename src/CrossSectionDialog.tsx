@@ -1,8 +1,7 @@
 import React, { FC, useEffect, useState } from 'react';
-import { LatLngLiteral } from 'leaflet';
 import Dialog from 'rc-dialog';
-import Plot from 'react-plotly.js';
-import { getElevations, getDistance } from './utils/elevations';
+import { LatLngLiteral } from 'leaflet';
+import CrossSectionGraph from './CrossSectionGraph';
 import 'rc-dialog/assets/index.css';
 
 type propType = {
@@ -10,43 +9,21 @@ type propType = {
   setVisible: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-type plotData = {
-  x: number[];
-  y: number[];
-};
-
 const CrossSectionDialog: FC<propType> = ({ visible, setVisible }) => {
-  const [plotData, setPlotData] = useState<plotData>();
+  const [points, setPoints] = useState<LatLngLiteral[]>();
+  const [ratio, setRatio] = useState<number>(1);
   useEffect(() => {
-    // subscribe('showDialog', showDialog);
+    // subscribe event
     document.addEventListener('showDialog', showDialog);
     return () => {
-      // unsubscribe('showDialog', showDialog);
+      // unsubscribe event
       document.removeEventListener('showDialog', showDialog);
     };
   });
 
   async function showDialog(data: CustomEvent<LatLngLiteral[]>) {
-    const points = data.detail;
-    const [lat1, lng1] = [points[0].lat, points[0].lng];
-    const [lat2, lng2] = [points[1].lat, points[1].lng];
-
-    // 2点間の標高、距離を計算する
-    const elevations = await getElevations(lat1, lng1, lat2, lng2);
-    const distance = getDistance(lat1, lng1, lat2, lng2) * 1000;
-    const ratio = 1;
-
-    // 分割した区間あたりの距離
-    const distancePerUnit = distance / elevations.length;
-    const xy: plotData = { x: [], y: [] };
-
-    // 標高の配列を(x:距離、y:標高)の配列に変換
-    elevations.forEach((v, i) => {
-      xy.x.push(i * distancePerUnit);
-      xy.y.push(v);
-    });
-
-    setPlotData(xy);
+    setRatio(1);
+    setPoints(data.detail);
     setVisible(true);
   }
 
@@ -55,52 +32,37 @@ const CrossSectionDialog: FC<propType> = ({ visible, setVisible }) => {
   };
 
   return (
-    <Dialog
-      visible={visible}
-      animation="zoom"
-      maskAnimation="fade"
-      onClose={onToggleDialog}
-      forceRender
-    >
-      {plotData && (
-        <Plot
-          data={[
-            {
-              x: plotData.x,
-              y: plotData.y,
-              type: 'scatter',
-              mode: 'lines',
-              line: { shape: 'spline' },
-            },
-          ]}
-          layout={{
-            width: 500,
-            margin: {
-              l: 80,
-              r: 10,
-              b: 40,
-              t: 30,
-              pad: 4,
-            },
-            title: '断面図',
-            xaxis: {
-              title: '距離',
-              ticksuffix: 'm',
-              exponentformat: 'none',
-              rangemode: 'tozero',
-            },
-            yaxis: {
-              scaleanchor: 'x', // グラフの縦横比を等倍にする
-              scaleratio: 1 /*ratio*/, // x軸に対する倍率
-              rangemode: 'tozero',
-              title: '標高',
-              ticksuffix: 'm',
-              exponentformat: 'none',
-            },
-          }}
-        />
-      )}
-    </Dialog>
+    <>
+      <Dialog
+        visible={visible}
+        animation="zoom"
+        maskAnimation="fade"
+        onClose={onToggleDialog}
+        forceRender
+      >
+        <div>
+          縦横比：
+          <select
+            id="ratio"
+            value={ratio}
+            onChange={(e) => setRatio(Number.parseInt(e.target.value))}
+          >
+            <option value="1.0">1.0</option>
+            <option value="2.0">2.0</option>
+            <option value="3.0">3.0</option>
+            <option value="4.0">4.0</option>
+            <option value="5.0">5.0</option>
+            <option value="7.0">7.0</option>
+            <option value="10.0">10.0</option>
+            <option value="15.0">15.0</option>
+            <option value="20.0">20.0</option>
+            <option value="30.0">30.0</option>
+            <option value="50.0">50.0</option>
+          </select>
+        </div>
+        {points && <CrossSectionGraph points={points} ratio={ratio} />}
+      </Dialog>
+    </>
   );
 };
 
