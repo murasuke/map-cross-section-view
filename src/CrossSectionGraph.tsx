@@ -63,7 +63,6 @@ const CrossSectionGraph: FC<propType> = ({ points, ratio }) => {
               t: 30,
               pad: 4,
             },
-            title: '断面図',
             xaxis: {
               title: '距離',
               ticksuffix: 'm',
