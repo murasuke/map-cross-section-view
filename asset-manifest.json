@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/map-cross-section-view/static/css/main.d22b3086.css",
+    "main.js": "/map-cross-section-view/static/js/main.4ee38fab.js",
+    "index.html": "/map-cross-section-view/index.html",
+    "main.d22b3086.css.map": "/map-cross-section-view/static/css/main.d22b3086.css.map",
+    "main.4ee38fab.js.map": "/map-cross-section-view/static/js/main.4ee38fab.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.d22b3086.css",
+    "static/js/main.4ee38fab.js"
+  ]
+}
