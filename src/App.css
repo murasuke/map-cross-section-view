@@ -1,4 +1,8 @@
 /* 地図を画面全体に表示 */
+body {
+  margin: 0;
+}
+
 .leaflet-container {
   width: 100vw;
   height: 100vh;

@@ -2,6 +2,7 @@ import { FC, useState, useMemo, useRef } from 'react';
 import { LatLngLiteral, Marker as MarkerRef, Popup as PopupRef } from 'leaflet';
 import { Marker, Polyline, Popup, useMap, useMapEvents } from 'react-leaflet';
 
+// カスタムイベントの型設定(ダイアログ表示イベント)
 declare global {
   interface DocumentEventMap {
     showDialog: CustomEvent<LatLngLiteral[]>;
@@ -13,6 +14,7 @@ type propType = {
   setLocation: React.Dispatch<React.SetStateAction<LatLngLiteral>>;
 };
 
+// 現在の位置をgoogleで開くためのURL
 const gmap = 'https://www.google.com/maps/search/?api=1&query=';
 
 /**
@@ -38,7 +40,6 @@ const LocationMarker: FC<propType> = ({ location, setLocation }) => {
         const marker = markerRef.current as MarkerRef;
         marker.setOpacity(0.6);
 
-        const { lat, lng } = marker.getLatLng();
         setPolyline((ary) => {
           // 開始位置、終了位置を開始位置で初期化
           return [marker.getLatLng(), marker.getLatLng()];
@@ -51,14 +52,12 @@ const LocationMarker: FC<propType> = ({ location, setLocation }) => {
         setLocation(marker.getLatLng());
         dragEndTime.current = new Date().getTime();
 
-        // raise dragend event
-        // publish('showDialog', polyline);
+        // ダイアログ表示イベントを配信
         const event = new CustomEvent('showDialog', { detail: polyline });
         document.dispatchEvent(event);
       },
       drag: () => {
         const marker = markerRef.current as MarkerRef;
-        // popRef.current?.openOn(map);
         // 終了位置を更新
         setPolyline((ary) => [
           ...ary.slice(0, ary.length - 1),
@@ -68,6 +67,12 @@ const LocationMarker: FC<propType> = ({ location, setLocation }) => {
     }),
     [map, setLocation, polyline]
   );
+
+  /**
+   * <Marker> クリック位置に表示するアイコン
+   * <Popup> アイコン上に表示する吹き出し(googleマップで開く)
+   * <Polyline> 直線(Markerをドラッグ＆ドロップして直線を引く)
+   */
 
   return !location ? null : (
     <>

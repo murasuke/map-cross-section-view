@@ -30,6 +30,7 @@ const LocationIndicator: FC<{ location: LatLngLiteral }> = ({ location }) => {
     });
   }, [location]);
 
+  // 地図領域右上(topright)に、標高と緯度、経度を表示する
   return (
     <Control position="topright">
       <div style={{ backgroundColor: 'Lavender' }}>

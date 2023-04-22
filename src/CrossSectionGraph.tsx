@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { LatLngLiteral } from 'leaflet';
 import Plot from 'react-plotly.js';
 import { getElevations, getDistance } from './utils/elevations';
@@ -57,6 +57,7 @@ const CrossSectionGraph: FC<propType> = ({ points, ratio }) => {
           layout={{
             width: 500,
             margin: {
+              // グラフ外側の空白調整
               l: 80,
               r: 10,
               b: 40,
