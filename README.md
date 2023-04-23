@@ -6,7 +6,7 @@ https://murasuke.github.io/map-cross-section-view/
 
 ## はじめに
 
-前に、2つの地点を指定して、その間の断面図を表示する機能を作りました
+以前、2つの地点(座標)を手入力して、その間の断面図を表示する[アプリ](https://qiita.com/murasuke/items/03d7c4bf9e816a34b7f1)を作りました
 
 [2つの地点間の断面図(標高)をグラフで表示する](https://qiita.com/murasuke/items/03d7c4bf9e816a34b7f1)
 
