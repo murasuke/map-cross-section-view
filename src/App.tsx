@@ -10,6 +10,14 @@ import CrossSectionDialog from './CrossSectionDialog';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
 
+/**
+ * 標高の断面図表示アプリ
+ * ・地図のアイコンをドラッグした区間の断面図を表示する
+ * ・地図上をクリックするとアイコンが移動する
+ * ・右上の情報表示領域に標高と緯度経度が表示される
+ * ・JavaScriptのCustomEventでコンポーネントを跨いだ通知(断面図表示)を行う
+ * @returns
+ */
 const App: FC = () => {
   // クリックされた位置(初期位置は富士山頂)
   const [location, setLocation] = useState<LatLngLiteral>({

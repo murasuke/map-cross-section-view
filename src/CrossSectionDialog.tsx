@@ -10,19 +10,28 @@ type propType = {
   setVisible: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
+/**
+ * 断面図のダイアログ
+ * ・位置アイコンをドラッグした際に発生する、MarkerDragEndイベントを捕捉
+ * ・イベント経由で、2つの座標を受け取り断面図ダイアログを表示する
+ * ・断面図(グラフ)自体の描画は、<CrossSectionGraph>側で行う
+ * @param param0
+ * @returns
+ */
 const CrossSectionDialog: FC<propType> = ({ visible, setVisible }) => {
   const [points, setPoints] = useState<LatLngLiteral[]>();
   const [ratio, setRatio] = useState<string>('1.0');
   const [disabled, setDisabled] = useState(true);
   useEffect(() => {
-    // subscribe event
-    document.addEventListener('showDialog', showDialog);
+    // 位置アイコンを移動した際に発生する「MarkerDragEnd」イベントを講読する
+    document.addEventListener('MarkerDragEnd', showDialog);
     return () => {
       // unsubscribe event
-      document.removeEventListener('showDialog', showDialog);
+      document.removeEventListener('MarkerDragEnd', showDialog);
     };
   });
 
+  // MarkerDragEndイベント経由で、2つの座標を受け取り断面図ダイアログを表示する
   async function showDialog(data: CustomEvent<LatLngLiteral[]>) {
     setRatio('1.0');
     setPoints(data.detail);
@@ -33,6 +42,11 @@ const CrossSectionDialog: FC<propType> = ({ visible, setVisible }) => {
     setVisible((value) => !value);
   };
 
+  /**
+   * <Dialog> ダイアログ表示コンポーネント(rc-dialog)
+   * <Draggable> ダイアログをドラッグで移動できるようにするためのコンポーネント
+   * <CrossSectionGraph> 断面図
+   */
   return (
     <>
       <Dialog

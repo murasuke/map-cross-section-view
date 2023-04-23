@@ -2,10 +2,10 @@ import { FC, useState, useMemo, useRef } from 'react';
 import { LatLngLiteral, Marker as MarkerRef, Popup as PopupRef } from 'leaflet';
 import { Marker, Polyline, Popup, useMap, useMapEvents } from 'react-leaflet';
 
-// カスタムイベントの型設定(ダイアログ表示イベント)
+// カスタムイベントの型設定(マーカーのドラッグ終了)
 declare global {
   interface DocumentEventMap {
-    showDialog: CustomEvent<LatLngLiteral[]>;
+    MarkerDragEnd: CustomEvent<LatLngLiteral[]>;
   }
 }
 
@@ -20,7 +20,7 @@ const gmap = 'https://www.google.com/maps/search/?api=1&query=';
 /**
  * 位置表示アイコン
  * ・クリックした位置にアイコン表示する
- *   ・クリックした位置を、親コンポーネント(App)へ通知する(state)し、その位置にMarkerを表示する
+ *   ・ドラッグ完了時、CustomEventで通知する
  */
 const LocationMarker: FC<propType> = ({ location, setLocation }) => {
   const [polyline, setPolyline] = useState<LatLngLiteral[]>([]);
@@ -53,7 +53,7 @@ const LocationMarker: FC<propType> = ({ location, setLocation }) => {
         dragEndTime.current = new Date().getTime();
 
         // ダイアログ表示イベントを配信
-        const event = new CustomEvent('showDialog', { detail: polyline });
+        const event = new CustomEvent('MarkerDragEnd', { detail: polyline });
         document.dispatchEvent(event);
       },
       drag: () => {

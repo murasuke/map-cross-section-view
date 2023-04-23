@@ -11,9 +11,10 @@ type ElevationType = {
 };
 
 /**
- * 位置表示エリア
+ * 位置情報表示エリア
  * ・クリックした位置の「標高」「緯度」「経度」を表示するエリア
  * ・propsで位置を受け取り、位置から「標高」を求めて表示する
+ * ・react-leaflet-custom-controlでラップすることで、マップ上にオーバーレイ表示する
  */
 const LocationIndicator: FC<{ location: LatLngLiteral }> = ({ location }) => {
   const f = (num: number, fixed = 6) =>
