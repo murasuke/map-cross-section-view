@@ -37,6 +37,7 @@ const App = () => (
   </MapContainer>
 );
 ```
+`url`:地図のURL、`attribution`:地図を利用する際に必要なCopyright、`center`:表示する座標、`zoom`:ズームレベル(拡大率、0全世界～15詳細地図)
 
 ###  [国土地理院タイル](https://maps.gsi.go.jp/development/siyou.html)
 
