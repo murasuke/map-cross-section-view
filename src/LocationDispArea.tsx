@@ -16,7 +16,7 @@ type ElevationType = {
  * ・propsで位置を受け取り、位置から「標高」を求めて表示する
  * ・react-leaflet-custom-controlでラップすることで、マップ上にオーバーレイ表示する
  */
-const LocationIndicator: FC<{ location: LatLngLiteral }> = ({ location }) => {
+const LocationDispArea: FC<{ location: LatLngLiteral }> = ({ location }) => {
   const f = (num: number, fixed = 6) =>
     ('             ' + num.toFixed(fixed)).slice(-6 - fixed);
   const formatAlt = (alt: ElevationType) =>
@@ -41,4 +41,4 @@ const LocationIndicator: FC<{ location: LatLngLiteral }> = ({ location }) => {
   );
 };
 
-export default LocationIndicator;
+export default LocationDispArea;

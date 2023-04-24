@@ -10,9 +10,19 @@ https://murasuke.github.io/map-cross-section-view/
 
 [2つの地点間の断面図(標高)をグラフで表示する](https://qiita.com/murasuke/items/03d7c4bf9e816a34b7f1)
 
-経度、緯度の手入力は面倒なので、**地図上をドラッグしてその区間の断面図を表示**できるアプリに仕立て直します
+経度、緯度を手で入力するUIは面倒だったので、**地図上をドラッグしてその区間の断面図を表示**できるアプリに仕立て直します
+
+動作確認用アプリ：
+https://murasuke.github.io/map-cross-section-view/
+
+ソース一式：
+https://github.com/murasuke/map-cross-section-view
 
 ## 概要
+
+* 地図を表示し、場所を示すアイコンをドラッグすることで2地点間の断面図を表示します
+* [国土地理院タイル](https://maps.gsi.go.jp/development/siyou.html)の中に、標高を画像の色から計算できる[標高タイル](https://maps.gsi.go.jp/development/demtile.html)があるので、それを利用して2点間の標高を求めます
+* 地図の表示には、[Leaflet](https://leafletjs.com/)、グラフ表示に[Plotly.js](https://plotly.com/javascript/)を利用します
 
 ### [Leaflet](https://leafletjs.com/)
 地図を表示するためのJavaScriptライブラリ。表示する地図は持たないので[OpenStreetMap](https://www.openstreetmap.org/about)や、[国土地理院タイル](https://maps.gsi.go.jp/development/siyou.html)と組み合わせて利用する
@@ -43,7 +53,7 @@ const App = () => (
 
 国土地理院が配信するタイル状の地図データ
 
-[標準地図](https://maps.gsi.go.jp/development/ichiran.html#std)をLearletで表示し、2つの地点間を[標高タイル](https://maps.gsi.go.jp/development/demtile.html)を使って断面図にします
+[標準地図](https://maps.gsi.go.jp/development/ichiran.html#std)をLearletで表示し、2つの地点間を[標高タイル](https://maps.gsi.go.jp/development/demtile.html)を使って断面図にする
 
 
 詳細は下記を参照
@@ -52,15 +62,15 @@ const App = () => (
 
 ### 断面図
 
-[標高タイル](https://maps.gsi.go.jp/development/demtile.html)で求めた2点間の標高を元に、[Plotly.js](https://plotly.com/javascript/)でグラフ化します
+[標高タイル](https://maps.gsi.go.jp/development/demtile.html)で求めた2点間の標高を元に、[Plotly.js](https://plotly.com/javascript/)でグラフ化する
 
-※[Chart.js](https://www.chartjs.org/)は、X軸とY軸を同じ比率にできない(距離と標高を正確に合わせられない)ため、[Plotly.js](https://plotly.com/javascript/)を利用している
+※[Chart.js](https://www.chartjs.org/)は、X軸とY軸を同じ比率にできない(距離と標高をが一致しない)ため、[Plotly.js](https://plotly.com/javascript/)を利用
 
 
 
 ## プログラムの概要
 
-* 地図を表示する (App.tsx)
+* 地図の表示 (App.tsx)
   * [React Leaflet](https://react-leaflet.js.org/)で、国土地理院タイルを表示する
   * マーカーの表示にちょっと癖があるので、正しく表示するための初期化を行う
   * 右上に「位置表示エリア」を表示
@@ -71,7 +81,7 @@ const App = () => (
 * 地図上にマーカーを表示 (LocationMarker.tsx)
   * クリックでマーカーを移動
   * マーカーをドラッグして地図上に線を引く
-  * ドラッグが終わったタイミングで断面図を表示する
+  * ドラッグが終わったタイミングで断面図を表示する(CustomEventで通知する)
 
 * 断面図 (CrossSectionDialog.tsx, CrossSectionGraph.tsx)
   * 断面図の作成方法は[2つの地点間の断面図(標高)をグラフで表示する](https://qiita.com/murasuke/items/03d7c4bf9e816a34b7f1)を参照
@@ -102,7 +112,7 @@ npm i -D @types/leaflet @types/react-plotly.js
 |  App.css  |  地図をブラウザいっぱいに表示するためのスタイル設定  |
 |  LocationDispArea.tsx  |  クリックした位置の「標高」「緯度」「経度」を表示する位置情報表示エリア  |
 |  LocationMarker.tsx  |  位置表示アイコン。ドラッグ完了時、CustomEventで通知する  |
-|  CrossSectionDialog.tsx  | 断面図をダイアログとして表示する。[rc-dialog](https://www.npmjs.com/package/rc-dialog)を利用   |
+|  CrossSectionDialog.tsx  | CustomEventを受信して断面図のダイアログを表示する。[rc-dialog](https://www.npmjs.com/package/rc-dialog)を利用  |
 |  CrossSectionGraph.tsx  |  plotly.jsを利用して、2座標間の断面図を描画する。[Plotly.js](https://plotly.com/javascript/)を利用  |
 |  utils\elevations.ts  |  2つの座標の間の標高を求める処理([国土地理院標高タイル](https://maps.gsi.go.jp/development/demtile.html)を利用)  |
 |  utils\initLeaflet.ts  |  地図に表示するマーカーの初期設定  |
@@ -111,6 +121,7 @@ npm i -D @types/leaflet @types/react-plotly.js
 
 ### App.tsx
 
+コメント参照
 ```tsx
 import { FC, useState } from 'react';
 import { LatLngLiteral } from 'leaflet';
@@ -171,6 +182,7 @@ export default App;
 
 ### App.css
 
+* 地図を画面全体に表示
 ```css
 /* 地図を画面全体に表示 */
 body {
@@ -189,6 +201,7 @@ body {
 
 ### LocationDispArea.tsx
 
+* マップ上でクリックした位置を`location`で受け取り、標高を計算して表示する
 ```tsx
 import { FC, useEffect, useState } from 'react';
 import { LatLngLiteral } from 'leaflet';
@@ -208,7 +221,7 @@ type ElevationType = {
  * ・propsで位置を受け取り、位置から「標高」を求めて表示する
  * ・react-leaflet-custom-controlでラップすることで、マップ上にオーバーレイ表示する
  */
-const LocationIndicator: FC<{ location: LatLngLiteral }> = ({ location }) => {
+const LocationDispArea: FC<{ location: LatLngLiteral }> = ({ location }) => {
   const f = (num: number, fixed = 6) =>
     ('             ' + num.toFixed(fixed)).slice(-6 - fixed);
   const formatAlt = (alt: ElevationType) =>
@@ -233,12 +246,13 @@ const LocationIndicator: FC<{ location: LatLngLiteral }> = ({ location }) => {
   );
 };
 
-export default LocationIndicator;
+export default LocationDispArea;
 
 ```
 
 ### LocationMarker.tsx
 
+* マーカーをクリックで移動。マーカーをドラッグ＆ドロップするとその間に線を引くのと同時に、CustomEvent('MarkerDragEnd')を配信する
 ```tsx
 import { FC, useState, useMemo, useRef } from 'react';
 import { LatLngLiteral, Marker as MarkerRef, Popup as PopupRef } from 'leaflet';
@@ -342,6 +356,7 @@ export default LocationMarker;
 
 ### CrossSectionDialog.tsx
 
+コメントを参照
 ```tsx
 import React, { FC, useEffect, useState } from 'react';
 import Dialog from 'rc-dialog';
@@ -456,6 +471,8 @@ export default CrossSectionDialog;
 
 ### CrossSectionGraph.tsx
 
+* ドラッグした開始点と終了点の座標を受け取り、その間の標高を`getElevations()`、距離を`getDistance()`で算出する
+* plotly.jsで描画する
 ```tsx
 import { FC, useEffect, useState } from 'react';
 import { LatLngLiteral } from 'leaflet';
@@ -564,6 +581,9 @@ export default CrossSectionGraph;
 ```
 
 ### utils\elevations.ts
+
+https://qiita.com/murasuke/items/03d7c4bf9e816a34b7f1
+参照
 
 ```typescript
 /**
@@ -916,6 +936,7 @@ export const getDistance = (
 
 ### utils\initLeaflet.ts
 
+Leafletのアイコンの初期設定(位置ずれの補正)
 ```typescript
 import Leaflet from 'leaflet';
 import icon from 'leaflet/dist/images/marker-icon.png';
