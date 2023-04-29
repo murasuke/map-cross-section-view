@@ -12,7 +12,7 @@
  * @returns
  */
 export const getElevation = async (lat1: number, lng1: number, zoom = 15) => {
-  let tile = calcTileInfo(lat1, lng1, zoom);
+  const tile = calcTileInfo(lat1, lng1, zoom);
 
   const context = await loadTile(tile.tX, tile.tY, zoom, {
     dataType: 'dem5a_png',
@@ -36,26 +36,98 @@ export const getElevations = async (
   lat2: number,
   lng2: number
 ) => {
-  let tile1, tile2, zoom;
-  // 経度、緯度から2つのPixcelの距離が128～256になるzoomlevelを選択する
-  for (zoom = 0; zoom <= 15; zoom++) {
-    tile1 = calcTileInfo(lat1, lng1, zoom);
-    tile2 = calcTileInfo(lat2, lng2, zoom);
+  // 経度、緯度から2点間Pixcelの距離が128～256になるzoomlevelを選択する
+  const { tile1, tile2, zoom } = adjustZoom(lat1, lng1, lat2, lng2);
+
+  // 2点間を線形補完して、座標の配列(直線)にする
+  const line = lerp(tile1.pX, tile1.pY, tile2.pX, tile2.pY);
+
+  // 標高の配列を取得して返す
+  return await elevations(line, zoom);
+};
+
+/**
+ * 2点間の線形補完
+ * 垂直でも計算しやすいので、中間の点を求めて再帰で分割
+ * ・(2^maxDepth(再帰) + 1)に分割する(デフォルトは129点に分割)
+ * @param {number} p1x
+ * @param {number} p1y
+ * @param {number} p2x
+ * @param {number} p2y
+ * @param {number} maxDepth = 7
+ * @param {number} depth 現在の再帰の深さ
+ * @returns
+ */
+const lerp = (
+  p1x: number,
+  p1y: number,
+  p2x: number,
+  p2y: number,
+  maxDepth = 7,
+  depth = 0
+): number[] => {
+  if (depth >= maxDepth) {
+    return [p1x, p1y];
+  }
+  const x = (p1x + p2x) / 2;
+  const y = (p1y + p2y) / 2;
+  depth += 1;
+  return [
+    ...lerp(p1x, p1y, x, y, maxDepth, depth),
+    ...lerp(x, y, p2x, p2y, maxDepth, depth),
+    ...(depth === 1 ? [p2x, p2y] : []), // 一番右端
+  ];
+};
+
+/**
+ * 標高を取得するのに適したzoom値を返す
+ * (pixcelの距離に換算して128～256になるzoom値を算出)
+ * @param {number} lat1
+ * @param {number} lng1
+ * @param {number} lat2
+ * @param {number} lng2
+ * @returns
+ */
+const adjustZoom = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+  for (let zoom = 0; zoom <= 15; zoom++) {
+    const tile1 = calcTileInfo(lat1, lng1, zoom);
+    const tile2 = calcTileInfo(lat2, lng2, zoom);
     // 2つのPixcelの距離が128～256になるまでzoomを増やす
     const distance = Math.sqrt(
       (tile1.pX - tile2.pX) ** 2 + (tile1.pY - tile2.pY) ** 2
     );
 
     if (distance > 128) {
-      break;
+      return {
+        tile1,
+        tile2,
+        zoom,
+      };
     }
   }
+  return null;
+};
 
-  // 2点間を線形補完した座標を計算する
-  const line = lerp(tile1.pX, tile1.pY, tile2.pX, tile2.pY);
+/**
+ * 座標の配列をもとに、標高の配列を返す
+ * @param {number[]} line
+ * @param {number} zoom
+ * @returns
+ */
+const elevations = async (line: number[], zoom: number) => {
+  // 一部標高情報場ない場所があるため、精度の高い順に取得
+  // https://maps.gsi.go.jp/development/ichiran.html
+  const mapTypes = [
+    'dem5a_png', // 航空レーザ測量
+    'dem5b_png', // 写真測量
+    'dem5c_png', // 写真測量
+    'dem_png', // 1/2.5万地形図等高線
+    'demgm_png', //　地球地図全球版標高
+  ];
 
-  let tiles: { [index: string]: CanvasRenderingContext2D } = {}; // タイル読み込みキャッシュ
-  const elevations = []; // 標高の配列
+  // タイル読み込みキャッシュ
+  const tiles: { [index: string]: CanvasRenderingContext2D } = {};
+  const elevations: number[] = []; // 標高の配列
 
   // 補完した座標から、標高を取得して配列にセット
   for (let i = 0; i < line.length; i += 2) {
@@ -63,30 +135,42 @@ export const getElevations = async (
     const y = line[i + 1];
 
     // タイルのindex
-    const tileCoordX = Math.floor(x / 256);
-    const tileCoordY = Math.floor(y / 256);
-    // タイル内の座標
-    const imageCoordX = Math.floor(x - tileCoordX * 256);
-    const imageCoordY = Math.floor(y - tileCoordY * 256);
+    const tileX = Math.floor(x / 256);
+    const tileY = Math.floor(y / 256);
 
-    let context = null; // タイルを描画したCanvas
-    if (!tiles[`${tileCoordX}_${tileCoordY}`]) {
-      // 標高タイルの読み込み
-      context = await loadTile(tileCoordX, tileCoordY, zoom, {
-        dataType: 'dem5a_png',
-      });
-      // 一度読み込んだタイルはキャッシュする
-      tiles[`${tileCoordX}_${tileCoordY}`] = context;
-    } else {
-      // キャッシュからタイルを取り出す
-      context = tiles[`${tileCoordX}_${tileCoordY}`];
+    let height: number = undefined;
+    for (let map of mapTypes) {
+      let context: CanvasRenderingContext2D = null; // タイルを描画したCanvas
+      if (!tiles[`${map}_${tileX}_${tileY}`]) {
+        try {
+          // 標高タイルの読み込み
+          context = await loadTile(tileX, tileY, zoom, {
+            dataType: map,
+          });
+          // 一度読み込んだタイルはキャッシュする
+          tiles[`${map}_${tileX}_${tileY}`] = context;
+        } catch (e) {
+          // 404の場合は低精度のタイルへフォールバック
+          continue;
+        }
+      } else {
+        // キャッシュからタイルを取り出す
+        context = tiles[`${map}_${tileX}_${tileY}`];
+      }
+
+      // タイル内の座標
+      const imageX = Math.floor(x - tileX * 256);
+      const imageY = Math.floor(y - tileY * 256);
+
+      // タイルから標高を取得
+      height = elevationFromTile(imageX, imageY, context);
+      if (height) {
+        break;
+      }
     }
 
-    // タイルから標高を取得
-    const h = elevationFromTile(imageCoordX, imageCoordY, context);
-    elevations.push(h);
+    elevations.push(height);
   }
-
   return elevations;
 };
 
@@ -231,6 +315,9 @@ export const loadTile = async (
 
   // onloadは非同期で発生するため、Promise()でラップして返す
   return new Promise((resolve, reject) => {
+    img.onerror = () => {
+      reject(); // 404
+    };
     img.onload = () => {
       // 読み込んだ座標をCanvasに描画して返す
       ctx.drawImage(img, 0, 0);
@@ -238,39 +325,6 @@ export const loadTile = async (
       resolve(ctx);
     };
   });
-};
-
-/**
- * 2点間の線形補完
- * 垂直でも計算しやすいので、中間の点を求めて再帰で分割
- * ・(2^再帰の深さ + 1)に分割する
- * @param {number} p1x
- * @param {number} p1y
- * @param {number} p2x
- * @param {number} p2y
- * @param {number} maxDepth = 7
- * @param {number} depth 現在の再帰の深さ
- * @returns
- */
-const lerp = (
-  p1x: number,
-  p1y: number,
-  p2x: number,
-  p2y: number,
-  maxDepth = 7,
-  depth = 0
-): number[] => {
-  if (depth >= maxDepth) {
-    return [p1x, p1y];
-  }
-  const x = (p1x + p2x) / 2;
-  const y = (p1y + p2y) / 2;
-  depth += 1;
-  return [
-    ...lerp(p1x, p1y, x, y, maxDepth, depth),
-    ...lerp(x, y, p2x, p2y, maxDepth, depth),
-    ...(depth === 1 ? [p2x, p2y] : []), // 一番右端
-  ];
 };
 
 /**
