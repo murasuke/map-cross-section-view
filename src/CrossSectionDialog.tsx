@@ -20,7 +20,7 @@ type propType = {
  */
 const CrossSectionDialog: FC<propType> = ({ visible, setVisible }) => {
   const [points, setPoints] = useState<LatLngLiteral[]>();
-  const [ratio, setRatio] = useState<string>('1.0');
+  const [ratio, setRatio] = useState<string>('1');
   const [disabled, setDisabled] = useState(true);
   useEffect(() => {
     // 位置アイコンを移動した際に発生する「MarkerDragEnd」イベントを講読する
@@ -42,6 +42,7 @@ const CrossSectionDialog: FC<propType> = ({ visible, setVisible }) => {
     setVisible((value) => !value);
   };
 
+  const ratios = ['1', '2', '3', '4', '5', '7', '10', '15', '20', '30', '50'];
   /**
    * <Dialog> ダイアログ表示コンポーネント(rc-dialog)
    * <Draggable> ダイアログをドラッグで移動できるようにするためのコンポーネント
@@ -84,17 +85,9 @@ const CrossSectionDialog: FC<propType> = ({ visible, setVisible }) => {
             value={ratio}
             onChange={(e) => setRatio(e.target.value)}
           >
-            <option value="1.0">1.0</option>
-            <option value="2.0">2.0</option>
-            <option value="3.0">3.0</option>
-            <option value="4.0">4.0</option>
-            <option value="5.0">5.0</option>
-            <option value="7.0">7.0</option>
-            <option value="10.0">10.0</option>
-            <option value="15.0">15.0</option>
-            <option value="20.0">20.0</option>
-            <option value="30.0">30.0</option>
-            <option value="50.0">50.0</option>
+            {ratios.map((value) => (
+              <option value={value}>{value}</option>
+            ))}
           </select>
         </div>
         {points && (
