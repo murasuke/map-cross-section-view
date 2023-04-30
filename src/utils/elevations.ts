@@ -1,8 +1,16 @@
 /**
  * 2座標間を線形補完して座標を求める
- * ・標高は地理院タイルの(DEM5A)を利用
+ * ・標高は地理院タイルを利用(標高が取得できない場合は、順次低精度のタイルへフォールバックする)
  *   https://maps.gsi.go.jp/development/ichiran.html
  */
+
+const mapTypes = [
+  'dem5a_png', // 航空レーザ測量
+  'dem5b_png', // 写真測量
+  'dem5c_png', // 写真測量
+  'dem_png', // 1/2.5万地形図等高線
+  'demgm_png', //　地球地図全球版標高
+];
 
 /**
  * 特定の座標の標高を求める
@@ -11,15 +19,10 @@
  * @param zoom
  * @returns
  */
-export const getElevation = async (lat1: number, lng1: number, zoom = 15) => {
+export const getElevation = async (lat1: number, lng1: number, zoom = 13) => {
   const tile = calcTileInfo(lat1, lng1, zoom);
-
-  const context = await loadTile(tile.tX, tile.tY, zoom, {
-    dataType: 'dem5a_png',
-  });
-  // タイルから標高を取得
-  const h = elevationFromTile(tile.iX, tile.iY, context);
-  return h;
+  const h = await elevations([tile.pX, tile.pY], zoom);
+  return h[0];
 };
 
 /**
@@ -115,16 +118,6 @@ const adjustZoom = (lat1: number, lng1: number, lat2: number, lng2: number) => {
  * @returns
  */
 const elevations = async (line: number[], zoom: number) => {
-  // 一部標高情報場ない場所があるため、精度の高い順に取得
-  // https://maps.gsi.go.jp/development/ichiran.html
-  const mapTypes = [
-    'dem5a_png', // 航空レーザ測量
-    'dem5b_png', // 写真測量
-    'dem5c_png', // 写真測量
-    'dem_png', // 1/2.5万地形図等高線
-    'demgm_png', //　地球地図全球版標高
-  ];
-
   // タイル読み込みキャッシュ
   const tiles: { [index: string]: CanvasRenderingContext2D } = {};
   const elevations: number[] = []; // 標高の配列
@@ -139,6 +132,7 @@ const elevations = async (line: number[], zoom: number) => {
     const tileY = Math.floor(y / 256);
 
     let height: number = undefined;
+    // 一部標高がない場所があるため、精度の高い順に取得
     for (let map of mapTypes) {
       let context: CanvasRenderingContext2D = null; // タイルを描画したCanvas
       if (!tiles[`${map}_${tileX}_${tileY}`]) {
@@ -328,7 +322,7 @@ export const loadTile = async (
 };
 
 /**
- * dem5aから標高を取得
+ * 標高タイルから標高を取得
  * @param {number} lat
  * @param {number} lng
  * @param {CanvasRenderingContext2D}
